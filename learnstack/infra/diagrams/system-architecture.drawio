@@ -1,0 +1,112 @@
+<mxfile host="65bd71144e">
+    <diagram name="Learnstack – System Architecture" id="0">
+        <mxGraphModel dx="1001" dy="1865" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="user" value="User" style="shape=actor;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="110" y="-180" width="60" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="react" value="React SPA&#xa;(Todo, Notes, Chat, AI Pages)" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="430" y="-180" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="cf-worker" value="Cloudflare Workers Gateway&#xa;Auth Verification • Routing • Rate Limiting" style="shape=image;image=https://www.vectorlogo.zone/logos/cloudflare/cloudflare-icon.svg;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="410" y="-30" width="120" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="todo" value="Todo Service&#xa;Golang (REST)&#xa;PostgreSQL" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="80" y="270" width="100" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="notes" value="Notes Service&#xa;Django (GraphQL)&#xa;MongoDB" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/django/django-plain.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="310" y="270" width="100" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="chat" value="Community Chat Service&#xa;FastAPI (WebSocket + REST)&#xa;MySQL" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/fastapi/fastapi-original.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="550" y="270" width="100" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="ai" value="AI Chat Service&#xa;Node.js (Express REST)&#xa;SQLite (Turso)" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="790" y="280" width="100" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="postgres" value="PostgreSQL" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="210" y="750" width="90" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="mongo" value="MongoDB" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="350" y="760" width="90" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="mysql" value="MySQL" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="490" y="760" width="90" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="sqlite" value="SQLite (Turso)" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/sqlite/sqlite-original.svg;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="650" y="760" width="90" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="redis" value="Upstash Redis&#xa;Shared Caching &amp; Pub/Sub" style="shape=image;image=https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg;verticalLabelPosition=bottom;verticalAlign=top;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="420" y="540" width="100" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="openrouter" value="OpenRouter&#xa;(AI Models)" style="shape=rectangle;verticalLabelPosition=bottom;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="1040" y="290" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="2" style="endArrow=block;" parent="1" source="user" target="react" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="3" style="endArrow=block;" parent="1" source="react" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="680" y="-106.40000000000009" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="4" style="endArrow=block;" parent="1" target="cf-worker" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="680" y="-80.79999999999995" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="5" value="REST" style="endArrow=block;" parent="1" source="cf-worker" target="todo" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="6" value="GraphQL" style="endArrow=block;" parent="1" source="cf-worker" target="notes" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="7" value="WebSocket + REST" style="endArrow=block;" parent="1" source="cf-worker" target="chat" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="8" value="REST" style="endArrow=block;" parent="1" source="cf-worker" target="ai" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="9" style="endArrow=block;" parent="1" source="todo" target="postgres" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="10" style="endArrow=block;" parent="1" source="notes" target="mongo" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="11" style="endArrow=block;" parent="1" source="chat" target="mysql" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="12" style="endArrow=block;" parent="1" source="ai" target="sqlite" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="13" value="Caching" style="dashed=1;endArrow=block;" parent="1" source="todo" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="14" value="Caching" style="dashed=1;endArrow=block;" parent="1" source="notes" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="15" value="Pub/Sub" style="dashed=1;endArrow=block;" parent="1" source="chat" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="16" value="Caching" style="dashed=1;endArrow=block;" parent="1" source="ai" target="redis" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="17" style="dotted=1;endArrow=block;" parent="1" source="cf-worker" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="260" y="20" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="18" style="endArrow=block;" parent="1" source="ai" target="openrouter" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="20" value="Firebase Auth" style="shape=image;image=https://www.vectorlogo.zone/logos/firebase/firebase-icon.svg;verticalLabelPosition=bottom;verticalAlign=top" vertex="1" parent="1">
+                    <mxGeometry x="180" y="-20" width="80" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="23" value="Cloudflare pages&#xa;" style="shape=image;image=https://www.vectorlogo.zone/logos/cloudflare/cloudflare-icon.svg;verticalLabelPosition=bottom;verticalAlign=top" vertex="1" parent="1">
+                    <mxGeometry x="680" y="-160" width="100" height="100" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
