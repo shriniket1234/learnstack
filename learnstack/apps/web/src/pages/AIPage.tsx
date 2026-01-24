@@ -9,8 +9,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bot, User, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AIMessage {
   id: number;
@@ -20,29 +21,66 @@ interface AIMessage {
   model: string;
 }
 
-const models = [
-  { value: "gpt-4", label: "ChatGPT (GPT-4)" },
-  { value: "claude-3", label: "Claude 3" },
-  { value: "grok", label: "Grok" },
-  { value: "t3-chat", label: "T3 Chat" },
-  { value: "gemini", label: "Gemini" },
-  { value: "llama", label: "Llama 3" },
-];
+interface Model {
+  value: string;
+  label: string;
+  provider: string;
+}
 
 export function AIPage() {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [models, setModels] = useState<Model[]>([]);
   const [selectedModel, setSelectedModel] = useState("gpt-4");
+  const [loadingModels, setLoadingModels] = useState(true);
+  const { getToken } = useAuth();
+
+  // Fetch available models on mount
+  useEffect(() => {
+    const fetchModels = async () => {
+      try {
+        const response = await fetch("/api/v1/models");
+        if (!response.ok) throw new Error("Failed to fetch models");
+        const data = await response.json();
+        setModels(data.models);
+      } catch (error) {
+        console.error("Error fetching models:", error);
+        // Fallback to default models if fetch fails
+        setModels([
+          { value: "gpt-4", label: "ChatGPT (GPT-4)", provider: "OpenAI" },
+          {
+            value: "gpt-3.5",
+            label: "ChatGPT (GPT-3.5 Turbo)",
+            provider: "OpenAI",
+          },
+          {
+            value: "claude-3",
+            label: "Claude 3 Sonnet",
+            provider: "Anthropic",
+          },
+          { value: "grok", label: "Grok", provider: "xAI" },
+          { value: "gemini", label: "Gemini Pro", provider: "Google" },
+          { value: "llama", label: "Llama 2 70B", provider: "Meta" },
+        ]);
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+
+    fetchModels();
+  }, []);
 
   const sendPrompt = async () => {
     if (input.trim()) {
       setLoading(true);
       try {
-        const response = await fetch("/api/ai/api/v1/chat", {
+        const token = await getToken();
+        const response = await fetch("/api/v1/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             model: selectedModel,
