@@ -18,12 +18,4 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  server: {
-    proxy: {
-      "/api": {
-        target: "https://ai-service-fawn.vercel.app/",
-        changeOrigin: true,
-      },
-    },
-  },
 });

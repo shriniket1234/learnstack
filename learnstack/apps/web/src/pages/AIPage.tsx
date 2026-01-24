@@ -13,6 +13,8 @@ import { useState, useEffect } from "react";
 import { Bot, User, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
 interface AIMessage {
   id: number;
   prompt: string;
@@ -40,7 +42,7 @@ export function AIPage() {
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const response = await fetch("/api/v1/models");
+        const response = await fetch(`${API_BASE}/api/v1/models`);
         if (!response.ok) throw new Error("Failed to fetch models");
         const data = await response.json();
         setModels(data.models);
@@ -76,7 +78,7 @@ export function AIPage() {
       setLoading(true);
       try {
         const token = await getToken();
-        const response = await fetch("/api/v1/chat", {
+        const response = await fetch(`${API_BASE}/api/v1/chat`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -88,7 +90,6 @@ export function AIPage() {
             max_tokens: 1000,
           }),
         });
-
         if (!response.ok) {
           throw new Error("Failed to get AI response");
         }
@@ -194,11 +195,12 @@ export function AIPage() {
                 <SelectValue placeholder="Select model" />
               </SelectTrigger>
               <SelectContent>
-                {models.map((model) => (
-                  <SelectItem key={model.value} value={model.value}>
-                    {model.label}
-                  </SelectItem>
-                ))}
+                {!loadingModels &&
+                  models.map((model) => (
+                    <SelectItem key={model.value} value={model.value}>
+                      {model.label}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
             <Input
