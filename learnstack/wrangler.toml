@@ -1,22 +1,11 @@
-name = "learnstack-api-gateway"
-main = "infra/worker/src/index.js"
-compatibility_date = "2024-01-01"
-
-[vars]
-JWT_SECRET = "your-jwt-secret-here"
-
-[[kv_namespaces]]
-binding = "AUTH_CACHE"
-id = "your-auth-cache-namespace-id"
-preview_id = "your-auth-cache-preview-id"
-
-[[kv_namespaces]]
-binding = "RATE_LIMIT"
-id = "your-rate-limit-namespace-id"
-preview_id = "your-rate-limit-preview-id"
+name = "learnstack"
+main = "apps/web/src/main.tsx"
+type = "javascript"
 
 [build]
-command = "npm run build"
+command = "cd apps/web && npm run build"
+cwd = "."
+watch_paths = ["apps/web/src/**/*.{ts,tsx}"]
 
-[build.upload]
-format = "modules"
+[env.production]
+name = "learnstack-production"
