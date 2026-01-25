@@ -1,3 +1,6 @@
+import { useEffect, useRef, useState } from "react";
+import { ArrowUp, Paperclip, Sparkles } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -5,15 +8,63 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Message } from "@/components/ui/message";
-import { useState, useEffect, useRef } from "react";
-import { ArrowUp, Paperclip, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
+
+/* ---------------- Models ---------------- */
+
+interface Model {
+  value: string;
+  label: string;
+  provider: string;
+}
+
+interface Model {
+  value: string;
+  label: string;
+  provider: string;
+}
+
+const MODELS: Model[] = [
+  // ───────── Free models ─────────
+  { value: "lfm-thinking", label: "lfm-thinking", provider: "Liquid" },
+  { value: "lfm-instruct", label: "lfm-instruct", provider: "Liquid" },
+  { value: "molmo", label: "molmo", provider: "AllenAI" },
+  { value: "mimo-flash", label: "mimo-flash", provider: "Xiaomi" },
+  { value: "nemotron-nano", label: "nemotron-nano", provider: "NVIDIA" },
+  { value: "devstral", label: "devstral", provider: "Mistral" },
+  { value: "nemotron-vl", label: "nemotron-vl", provider: "NVIDIA" },
+  {
+    value: "qwen-next-instruct",
+    label: "qwen-next-instruct",
+    provider: "Qwen",
+  },
+  {
+    value: "deepseek-chimera",
+    label: "deepseek-chimera",
+    provider: "DeepSeek",
+  },
+  { value: "gemma-3n", label: "gemma-3n", provider: "Google" },
+  { value: "llama-3.1-405b", label: "llama-3.1-405b", provider: "Meta" },
+  { value: "mistral-small", label: "mistral-small", provider: "Mistral" },
+  { value: "gemma-3-4b", label: "gemma-3-4b", provider: "Google" },
+  { value: "gemma-3-12b", label: "gemma-3-12b", provider: "Google" },
+  { value: "gemma-3-27b", label: "gemma-3-27b", provider: "Google" },
+  { value: "gpt-oss-120b", label: "gpt-oss-120b", provider: "OpenAI" },
+  { value: "gpt-oss-20b", label: "gpt-oss-20b", provider: "OpenAI" },
+  { value: "glm-air", label: "glm-air", provider: "Z-AI" },
+  { value: "kimi-k2", label: "kimi-k2", provider: "Moonshot" },
+  { value: "hermes-405b", label: "hermes-405b", provider: "Nous" },
+  { value: "llama-3.3-70b", label: "llama-3.3-70b", provider: "Meta" },
+];
+
+const modelLabelMap = Object.fromEntries(MODELS.map((m) => [m.value, m.label]));
+
+/* ---------------- Types ---------------- */
 
 interface AIMessage {
   id: number;
@@ -23,340 +74,244 @@ interface AIMessage {
   model: string;
 }
 
-interface Model {
-  value: string;
-  label: string;
-  provider: string;
+/* ========================================================= */
+/* Chat Input (MOVED OUT — FIXES FOCUS LOSS)                  */
+/* ========================================================= */
+
+interface ChatInputProps {
+  input: string;
+  setInput: (v: string) => void;
+  loading: boolean;
+  selectedModel: string;
+  setSelectedModel: (v: string) => void;
+  onSend: () => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
 }
 
-const SUGGESTION_PROMPTS = [
-  { icon: "📝", text: "Summary" },
-  { icon: "💻", text: "Code" },
-  { icon: "🎨", text: "Design" },
-  { icon: "📚", text: "Research" },
-  { icon: "✨", text: "Get Inspired" },
-];
+function ChatInput({
+  input,
+  setInput,
+  loading,
+  selectedModel,
+  setSelectedModel,
+  onSend,
+  textareaRef,
+}: ChatInputProps) {
+  return (
+    <div className="relative rounded-2xl border bg-background shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+      <Textarea
+        ref={textareaRef}
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            onSend();
+          }
+        }}
+        placeholder={`Ask ${modelLabelMap[selectedModel]}…`}
+        disabled={loading}
+        rows={1}
+        className="
+          w-full
+          resize-none
+          border-0
+          bg-transparent
+          px-5
+          pt-4
+          pb-14
+          text-base
+          leading-relaxed
+          focus-visible:ring-0
+          focus-visible:ring-offset-0
+          placeholder:text-muted-foreground/60
+        "
+      />
 
-const THINKING_MODES = [
-  { icon: "🧠", text: "Think Deeply" },
-  { icon: "💡", text: "Learn Gently" },
-];
+      {/* Bottom bar */}
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 border-t bg-background/80 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md">
+            <Paperclip className="h-4 w-4" />
+          </Button>
+
+          <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <SelectTrigger
+              className="
+                h-7
+                px-2.5
+                rounded-md
+                text-xs
+                font-medium
+                border
+                border-muted
+                bg-muted/40
+                hover:bg-muted
+                focus:ring-0
+                focus:ring-offset-0
+                flex
+                items-center
+                gap-1
+              "
+            >
+              <Sparkles className="h-3 w-3 opacity-70" />
+              <span>{modelLabelMap[selectedModel]}</span>
+            </SelectTrigger>
+
+            <SelectContent align="start" className="max-h-64 overflow-y-auto">
+              {MODELS.map((model) => (
+                <SelectItem key={model.value} value={model.value}>
+                  <div className="flex flex-col">
+                    <span className="text-sm">{model.label}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {model.provider}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button
+          size="icon"
+          disabled={loading || !input.trim()}
+          onClick={onSend}
+          className="
+            h-8
+            w-8
+            rounded-md
+            bg-foreground
+            text-background
+            hover:bg-foreground/90
+            disabled:opacity-30
+          "
+        >
+          <ArrowUp className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ========================================================= */
+/* Main Page                                                  */
+/* ========================================================= */
 
 export function AIPage() {
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [models, setModels] = useState<Model[]>([]);
-  const [selectedModel, setSelectedModel] = useState("gpt-4");
-  const [loadingModels, setLoadingModels] = useState(true);
+  const [selectedModel, setSelectedModel] = useState(MODELS[0].value);
+
   const { getToken } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  /* Auto scroll */
   useEffect(() => {
-    const fetchModels = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/api/v1/models`);
-        if (!response.ok) throw new Error("Failed to fetch models");
-        const data = await response.json();
-        setModels(data.models);
-      } catch (error) {
-        console.error("Error fetching models:", error);
-        setModels([
-          { value: "gpt-4", label: "GPT-4.1 Nano", provider: "OpenAI" },
-          { value: "gpt-3.5", label: "GPT-3.5 Turbo", provider: "OpenAI" },
-          {
-            value: "claude-3",
-            label: "Claude 3 Sonnet",
-            provider: "Anthropic",
-          },
-          { value: "grok", label: "Grok", provider: "xAI" },
-          { value: "gemini", label: "Gemini Pro", provider: "Google" },
-          { value: "llama", label: "Llama 2 70B", provider: "Meta" },
-        ]);
-      } finally {
-        setLoadingModels(false);
-      }
-    };
-    fetchModels();
-  }, []);
+    const viewport = scrollAreaRef.current?.querySelector(
+      "[data-radix-scroll-area-viewport]",
+    ) as HTMLDivElement | null;
 
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollContainer = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]",
-      );
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
-    }
-  }, [messages]);
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  }, [messages, loading]);
 
+  /* Auto-grow textarea */
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height =
-        Math.min(textareaRef.current.scrollHeight, 200) + "px";
-    }
+    if (!textareaRef.current) return;
+    textareaRef.current.style.height = "auto";
+    textareaRef.current.style.height =
+      Math.min(textareaRef.current.scrollHeight, 200) + "px";
   }, [input]);
 
-  const sendPrompt = async (customPrompt?: string) => {
-    const messageToSend = customPrompt || input.trim();
-    if (messageToSend && !loading) {
-      setInput("");
-      setLoading(true);
+  const sendPrompt = async () => {
+    const content = input.trim();
+    if (!content || loading) return;
 
-      try {
-        const token = await getToken();
-        const response = await fetch(`${API_BASE}/api/v1/chat`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            model: selectedModel,
-            prompt: messageToSend,
-            max_tokens: 1000,
-          }),
-        });
-        if (!response.ok) throw new Error("Failed to get AI response");
+    setInput("");
+    setLoading(true);
 
-        const data = await response.json();
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_BASE}/api/v1/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          prompt: content,
+          max_tokens: 1000,
+        }),
+      });
 
-        setMessages([
-          ...messages,
-          {
-            id: Date.now(),
-            prompt: messageToSend,
-            response: data.response,
-            timestamp: new Date(),
-            model: selectedModel,
-          },
-        ]);
-      } catch (error) {
-        console.error("Error:", error);
-        setMessages([
-          ...messages,
-          {
-            id: Date.now(),
-            prompt: messageToSend,
-            response: "Sorry, there was an error processing your request.",
-            timestamp: new Date(),
-            model: selectedModel,
-          },
-        ]);
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
+      const data = await res.json();
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendPrompt();
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          prompt: content,
+          response: data.response,
+          timestamp: new Date(),
+          model: selectedModel,
+        },
+      ]);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="flex flex-col bg-background">
       {messages.length === 0 ? (
-        /* Empty State */
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
+        <div className="flex flex-1 items-center justify-center px-4">
           <div className="w-full max-w-3xl space-y-8">
-            {/* Title */}
-            <h1 className="text-4xl md:text-5xl font-semibold text-center mb-12">
-              What's on your mind?
+            <h1 className="text-center text-4xl font-semibold">
+              What’s on your mind?
             </h1>
 
-            {/* Input Container */}
-            <div className="space-y-6">
-              {/* Main Input Bar */}
-              <div className="relative border rounded-2xl bg-background shadow-sm overflow-hidden">
-                <Textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={`Ask ${selectedModel || "AI"}...`}
-                  disabled={loading}
-                  className="w-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[120px] max-h-[200px] bg-transparent px-5 pt-5 pb-16 text-base placeholder:text-muted-foreground/50"
-                  rows={1}
-                />
-
-                {/* Bottom Bar */}
-                <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-3 border-t bg-background">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-lg"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-
-                    <Select
-                      value={selectedModel}
-                      onValueChange={setSelectedModel}
-                    >
-                      <SelectTrigger className="w-auto h-8 border-0 bg-transparent hover:bg-muted/50 focus:ring-0 text-sm gap-1">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent align="start">
-                        {!loadingModels &&
-                          models.map((model) => (
-                            <SelectItem key={model.value} value={model.value}>
-                              {model.label}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button
-                    onClick={() => sendPrompt()}
-                    disabled={loading || !input.trim()}
-                    size="icon"
-                    className="h-8 w-8 rounded-lg bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30"
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Suggestion Chips */}
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                {SUGGESTION_PROMPTS.map((prompt, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => sendPrompt(prompt.text)}
-                    className="rounded-full h-9 px-4 text-sm font-normal"
-                  >
-                    <span className="mr-2">{prompt.icon}</span>
-                    {prompt.text}
-                  </Button>
-                ))}
-              </div>
-
-              {/* Thinking Mode Chips */}
-              <div className="flex items-center justify-center gap-2">
-                {THINKING_MODES.map((mode, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => sendPrompt(mode.text)}
-                    className="rounded-full h-9 px-4 text-sm font-normal"
-                  >
-                    <span className="mr-2">{mode.icon}</span>
-                    {mode.text}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <ChatInput
+              input={input}
+              setInput={setInput}
+              loading={loading}
+              selectedModel={selectedModel}
+              setSelectedModel={setSelectedModel}
+              onSend={sendPrompt}
+              textareaRef={textareaRef}
+            />
           </div>
         </div>
       ) : (
-        /* Chat State */
         <>
           <ScrollArea ref={scrollAreaRef} className="flex-1">
-            <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
-              {messages.map((msg) => (
-                <div key={msg.id} className="space-y-8">
-                  <Message content={msg.prompt} isUser={true} />
+            <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
+              {messages.map((m) => (
+                <div key={m.id} className="space-y-8">
+                  <Message isUser content={m.prompt} />
                   <Message
-                    content={msg.response}
-                    isUser={false}
-                    timestamp={msg.timestamp}
-                    model={
-                      models.find((m) => m.value === msg.model)?.label ||
-                      msg.model
-                    }
+                    content={m.response}
+                    model={modelLabelMap[m.model]}
+                    timestamp={m.timestamp}
                   />
                 </div>
               ))}
-              {loading && (
-                <div className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground">
-                    {models.find((m) => m.value === selectedModel)?.label}
-                  </div>
-                  <div className="flex gap-1">
-                    <div
-                      className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    />
-                    <div
-                      className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    />
-                    <div
-                      className="w-2 h-2 bg-foreground/40 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </ScrollArea>
 
-          {/* Sticky Input */}
-          <div className="border-t bg-background px-4 py-4 shrink-0">
-            <div className="max-w-3xl mx-auto">
-              <div className="relative border rounded-2xl bg-background shadow-sm overflow-hidden">
-                <Textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Ask Zola"
-                  disabled={loading}
-                  className="w-full resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px] max-h-[200px] bg-transparent px-5 pt-4 pb-14 text-base placeholder:text-muted-foreground/50"
-                  rows={1}
-                />
-
-                <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-3 border-t bg-background">
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-lg"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                    </Button>
-
-                    <Select
-                      value={selectedModel}
-                      onValueChange={setSelectedModel}
-                    >
-                      <SelectTrigger className="w-auto h-8 border-0 bg-transparent hover:bg-muted/50 focus:ring-0 text-sm gap-1">
-                        <Sparkles className="h-3.5 w-3.5" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent align="start">
-                        {!loadingModels &&
-                          models.map((model) => (
-                            <SelectItem key={model.value} value={model.value}>
-                              {model.label}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button
-                    onClick={() => sendPrompt()}
-                    disabled={loading || !input.trim()}
-                    size="icon"
-                    className="h-8 w-8 rounded-lg bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30"
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+          <div className="shrink-0 border-t px-4 py-4">
+            <div className="mx-auto max-w-3xl">
+              <ChatInput
+                input={input}
+                setInput={setInput}
+                loading={loading}
+                selectedModel={selectedModel}
+                setSelectedModel={setSelectedModel}
+                onSend={sendPrompt}
+                textareaRef={textareaRef}
+              />
             </div>
           </div>
         </>
