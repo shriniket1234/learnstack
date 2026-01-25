@@ -338,6 +338,113 @@ app.post(
   },
 );
 
+app.post(
+  "/api/v1/chat/stream",
+  authMiddleware,
+  async (req: Request, res: Response) => {
+    try {
+      const { prompt, model, max_tokens = 1000 }: ChatRequest = req.body;
+
+      if (!prompt || !model) {
+        res.status(400).json({ error: "prompt and model required" });
+        return;
+      }
+
+      const modelMap: Record<string, string> = {
+        "lfm-thinking": "liquid/lfm-2.5-1.2b-thinking:free",
+        "lfm-instruct": "liquid/lfm-2.5-1.2b-instruct:free",
+        molmo: "allenai/molmo-2-8b:free",
+        "mimo-flash": "xiaomi/mimo-v2-flash:free",
+        "nemotron-nano": "nvidia/nemotron-nano-30b-a3b:free",
+        devstral: "mistralai/devstral-2512:free",
+        "nemotron-vl": "nvidia/nemotron-nano-12b-v2-vl:free",
+        "qwen-next-instruct": "qwen/qwen3-next-80b-a3b-instruct:free",
+        "deepseek-chimera": "tngtech/deepseek-r1t-chimera:free",
+        "gemma-3n": "google/gemma-3n-e2b-it:free",
+        "llama-3.1-405b": "meta-llama/llama-3.1-405b-instruct:free",
+        "mistral-small": "mistralai/mistral-small-3.1-24b-instruct:free",
+        "gemma-3-4b": "google/gemma-3-4b-it:free",
+        "gemma-3-12b": "google/gemma-3-12b-it:free",
+        "gemma-3-27b": "google/gemma-3-27b-it:free",
+        "gpt-oss-120b": "openai/gpt-oss-120b:free",
+        "gpt-oss-20b": "openai/gpt-oss-20b:free",
+        "glm-air": "z-ai/glm-4.5-air:free",
+        "kimi-k2": "moonshotai/kimi-k2:free",
+        "hermes-405b": "nousresearch/hermes-3-llama-3.1-405b:free",
+        "llama-3.3-70b": "meta-llama/llama-3.3-70b-instruct:free",
+      };
+
+      const openrouterModel = modelMap[model];
+      if (!openrouterModel) {
+        res.status(400).json({ error: "Unsupported model" });
+        return;
+      }
+
+      /* ---------------- SSE headers ---------------- */
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.flushHeaders();
+
+      /* ---------------- OpenRouter stream ---------------- */
+      const openrouter = await axios.post(
+        "https://openrouter.ai/api/v1/chat/completions",
+        {
+          model: openrouterModel,
+          messages: [{ role: "user", content: prompt }],
+          max_tokens,
+          stream: true,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+            "HTTP-Referer": "http://localhost:3000",
+            "X-Title": "Learnstack AI",
+          },
+          responseType: "stream",
+        },
+      );
+
+      openrouter.data.on("data", (chunk: Buffer) => {
+        const lines = chunk
+          .toString()
+          .split("\n")
+          .filter((line) => line.startsWith("data:"));
+
+        for (const line of lines) {
+          if (line.includes("[DONE]")) {
+            res.write("event: done\ndata: done\n\n");
+            res.end();
+            return;
+          }
+
+          try {
+            const json = JSON.parse(line.replace("data: ", ""));
+            const token = json.choices?.[0]?.delta?.content;
+            if (token) {
+              res.write(`data: ${token}\n\n`);
+            }
+          } catch {
+            // ignore malformed chunks
+          }
+        }
+      });
+
+      openrouter.data.on("end", () => {
+        res.end();
+      });
+
+      openrouter.data.on("error", (err: any) => {
+        console.error("Stream error:", err);
+        res.end();
+      });
+    } catch (error) {
+      console.error("Streaming error:", error);
+      res.end();
+    }
+  },
+);
+
 // 404 handler
 app.use((req: Request, res: Response) => {
   res.status(404).json({ error: "Not found" });

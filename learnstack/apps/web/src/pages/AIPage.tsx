@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Message } from "@/components/ui/message";
 import { useAuth } from "@/hooks/useAuth";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = "http://localhost:3001";
 
 /* ---------------- Models ---------------- */
 
@@ -23,14 +23,7 @@ interface Model {
   provider: string;
 }
 
-interface Model {
-  value: string;
-  label: string;
-  provider: string;
-}
-
 const MODELS: Model[] = [
-  // ───────── Free models ─────────
   { value: "lfm-thinking", label: "lfm-thinking", provider: "Liquid" },
   { value: "lfm-instruct", label: "lfm-instruct", provider: "Liquid" },
   { value: "molmo", label: "molmo", provider: "AllenAI" },
@@ -72,11 +65,16 @@ interface AIMessage {
   response: string;
   timestamp: Date;
   model: string;
+  streaming: boolean;
 }
 
-/* ========================================================= */
-/* Chat Input (MOVED OUT — FIXES FOCUS LOSS)                  */
-/* ========================================================= */
+/* ---------------- Cursor ---------------- */
+
+function Cursor() {
+  return <span className="ml-1 animate-pulse text-muted-foreground">▍</span>;
+}
+
+/* ---------------- Chat Input ---------------- */
 
 interface ChatInputProps {
   input: string;
@@ -98,7 +96,7 @@ function ChatInput({
   textareaRef,
 }: ChatInputProps) {
   return (
-    <div className="relative rounded-2xl border bg-background shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+    <div className="relative rounded-2xl border bg-background shadow-sm">
       <Textarea
         ref={textareaRef}
         value={input}
@@ -112,57 +110,25 @@ function ChatInput({
         placeholder={`Ask ${modelLabelMap[selectedModel]}…`}
         disabled={loading}
         rows={1}
-        className="
-          w-full
-          resize-none
-          border-0
-          bg-transparent
-          px-5
-          pt-4
-          pb-14
-          text-base
-          leading-relaxed
-          focus-visible:ring-0
-          focus-visible:ring-offset-0
-          placeholder:text-muted-foreground/60
-        "
+        className="w-full resize-none border-0 bg-transparent px-5 pt-4 pb-14 focus-visible:ring-0"
       />
 
-      {/* Bottom bar */}
-      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 border-t bg-background/80 backdrop-blur">
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2 border-t bg-background">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-md">
+          <Button variant="ghost" size="icon">
             <Paperclip className="h-4 w-4" />
           </Button>
 
           <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger
-              className="
-                h-7
-                px-2.5
-                rounded-md
-                text-xs
-                font-medium
-                border
-                border-muted
-                bg-muted/40
-                hover:bg-muted
-                focus:ring-0
-                focus:ring-offset-0
-                flex
-                items-center
-                gap-1
-              "
-            >
-              <Sparkles className="h-3 w-3 opacity-70" />
-              <span>{modelLabelMap[selectedModel]}</span>
+            <SelectTrigger className="h-7 px-2 text-xs">
+              <Sparkles className="h-3 w-3 mr-1" />
+              {modelLabelMap[selectedModel]}
             </SelectTrigger>
-
-            <SelectContent align="start" className="max-h-64 overflow-y-auto">
+            <SelectContent>
               {MODELS.map((model) => (
                 <SelectItem key={model.value} value={model.value}>
                   <div className="flex flex-col">
-                    <span className="text-sm">{model.label}</span>
+                    <span>{model.label}</span>
                     <span className="text-xs text-muted-foreground">
                       {model.provider}
                     </span>
@@ -177,15 +143,6 @@ function ChatInput({
           size="icon"
           disabled={loading || !input.trim()}
           onClick={onSend}
-          className="
-            h-8
-            w-8
-            rounded-md
-            bg-foreground
-            text-background
-            hover:bg-foreground/90
-            disabled:opacity-30
-          "
         >
           <ArrowUp className="h-4 w-4" />
         </Button>
@@ -194,9 +151,7 @@ function ChatInput({
   );
 }
 
-/* ========================================================= */
-/* Main Page                                                  */
-/* ========================================================= */
+/* ---------------- Main Page ---------------- */
 
 export function AIPage() {
   const [messages, setMessages] = useState<AIMessage[]>([]);
@@ -208,114 +163,106 @@ export function AIPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  /* Auto scroll */
   useEffect(() => {
     const viewport = scrollAreaRef.current?.querySelector(
       "[data-radix-scroll-area-viewport]",
     ) as HTMLDivElement | null;
 
     if (viewport) viewport.scrollTop = viewport.scrollHeight;
-  }, [messages, loading]);
-
-  /* Auto-grow textarea */
-  useEffect(() => {
-    if (!textareaRef.current) return;
-    textareaRef.current.style.height = "auto";
-    textareaRef.current.style.height =
-      Math.min(textareaRef.current.scrollHeight, 200) + "px";
-  }, [input]);
+  }, [messages]);
 
   const sendPrompt = async () => {
-    const content = input.trim();
-    if (!content || loading) return;
+    if (!input.trim() || loading) return;
 
+    const content = input;
     setInput("");
     setLoading(true);
 
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API_BASE}/api/v1/chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          model: selectedModel,
-          prompt: content,
-          max_tokens: 1000,
-        }),
-      });
+    const id = Date.now();
 
-      const data = await res.json();
+    setMessages((prev) => [
+      ...prev,
+      {
+        id,
+        prompt: content,
+        response: "",
+        model: selectedModel,
+        timestamp: new Date(),
+        streaming: true,
+      },
+    ]);
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          prompt: content,
-          response: data.response,
-          timestamp: new Date(),
-          model: selectedModel,
-        },
-      ]);
-    } finally {
-      setLoading(false);
+    const token = await getToken();
+    const res = await fetch(`${API_BASE}/api/v1/chat/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ prompt: content, model: selectedModel }),
+    });
+
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n\n");
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const token = line.replace("data: ", "");
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === id ? { ...m, response: m.response + token } : m,
+            ),
+          );
+        }
+      }
     }
+
+    setMessages((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, streaming: false } : m)),
+    );
+    setLoading(false);
   };
 
   return (
-    <div className="flex flex-col bg-background">
-      {messages.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center px-4">
-          <div className="w-full max-w-3xl space-y-8">
-            <h1 className="text-center text-4xl font-semibold">
-              What’s on your mind?
-            </h1>
-
-            <ChatInput
-              input={input}
-              setInput={setInput}
-              loading={loading}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              onSend={sendPrompt}
-              textareaRef={textareaRef}
-            />
-          </div>
+    <div className="flex flex-col h-full">
+      <ScrollArea ref={scrollAreaRef} className="flex-1">
+        <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
+          {messages.map((m) => (
+            <div key={m.id} className="space-y-4">
+              <Message isUser content={m.prompt} />
+              <div className="relative">
+                <Message
+                  content={m.response || (m.streaming ? "Thinking…" : "")}
+                  model={modelLabelMap[m.model]}
+                  timestamp={m.timestamp}
+                />
+                {m.streaming && <Cursor />}
+              </div>
+            </div>
+          ))}
         </div>
-      ) : (
-        <>
-          <ScrollArea ref={scrollAreaRef} className="flex-1">
-            <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
-              {messages.map((m) => (
-                <div key={m.id} className="space-y-8">
-                  <Message isUser content={m.prompt} />
-                  <Message
-                    content={m.response}
-                    model={modelLabelMap[m.model]}
-                    timestamp={m.timestamp}
-                  />
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
+      </ScrollArea>
 
-          <div className="shrink-0 border-t px-4 py-4">
-            <div className="mx-auto max-w-3xl">
-              <ChatInput
-                input={input}
-                setInput={setInput}
-                loading={loading}
-                selectedModel={selectedModel}
-                setSelectedModel={setSelectedModel}
-                onSend={sendPrompt}
-                textareaRef={textareaRef}
-              />
-            </div>
-          </div>
-        </>
-      )}
+      <div className="border-t p-4">
+        <div className="mx-auto max-w-3xl">
+          <ChatInput
+            input={input}
+            setInput={setInput}
+            loading={loading}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            onSend={sendPrompt}
+            textareaRef={textareaRef}
+          />
+        </div>
+      </div>
     </div>
   );
 }
