@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Message } from "@/components/ui/message";
 import { useAuth } from "@/hooks/useAuth";
 
-const API_BASE = "http://localhost:3001";
+const API_BASE = "https://ai-service-fawn.vercel.app";
+// const API_BASE = "http://localhost:3001";
 
 /* ---------------- Models ---------------- */
 
