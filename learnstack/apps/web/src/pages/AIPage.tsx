@@ -231,12 +231,14 @@ export function AIPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea ref={scrollAreaRef} className="flex-1">
+    <div className="flex flex-col flex-1 min-h-0">
+      {/* Chat messages */}
+      <ScrollArea className="flex-1 min-h-0">
         <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
           {messages.map((m) => (
             <div key={m.id} className="space-y-4">
               <Message isUser content={m.prompt} />
+
               <div className="relative">
                 <Message
                   content={m.response || (m.streaming ? "Thinking…" : "")}
@@ -250,8 +252,9 @@ export function AIPage() {
         </div>
       </ScrollArea>
 
-      <div className="border-t p-4">
-        <div className="mx-auto max-w-3xl">
+      {/* Sticky input */}
+      <div className="sticky bottom-0 border-t bg-background">
+        <div className="mx-auto max-w-3xl p-4">
           <ChatInput
             input={input}
             setInput={setInput}
